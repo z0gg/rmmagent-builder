@@ -6,7 +6,7 @@ on:
     - cron: '0 3 * * 1'
   push:
     tags:
-      - "*"
+      - '*'
 
 permissions:
   contents: write
@@ -18,63 +18,69 @@ jobs:
 
     steps:
       - name: Checkout Current Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Checkout rmmagent Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: amidaware/rmmagent
           path: rmmagent
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.20'
           cache-dependency-path: rmmagent/go.sum
 
-      - name: Create Version Output
-        run: |
-          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "VERSION=latest" >> $GITHUB_ENV
-          else
-            echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
-          fi
-
       - name: Setup Environment
         run: |
-          mkdir out
+          mkdir -p out
           sudo apt-get update
-          sudo apt-get install -y gcc-mingw-w64 innoextract nsis
+          sudo apt-get install -y gcc-mingw-w64
 
       - name: Build Windows amd64
         working-directory: rmmagent
-        run: env GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build -ldflags "-s -w" -o ../out/rmmagent-windows-amd64.exe
+        run: |
+          env GOOS=windows GOARCH=amd64 CGO_ENABLED=1 \
+          CC=x86_64-w64-mingw32-gcc \
+          CXX=x86_64-w64-mingw32-g++ \
+          go build -ldflags "-s -w" -o ../out/rmmagent-windows-amd64.exe
 
       - name: Build Windows x86
         working-directory: rmmagent
-        run: env GOOS=windows GOARCH=386 CGO_ENABLED=1 CC=i686-w64-mingw32-gcc CXX=i686-w64-mingw32-g++ go build -ldflags "-s -w" -o ../out/rmmagent-windows-386.exe
+        run: |
+          env GOOS=windows GOARCH=386 CGO_ENABLED=1 \
+          CC=i686-w64-mingw32-gcc \
+          CXX=i686-w64-mingw32-g++ \
+          go build -ldflags "-s -w" -o ../out/rmmagent-windows-386.exe
 
       - name: Build Linux amd64
         working-directory: rmmagent
-        run: env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" -o ../out/rmmagent-linux-amd64
+        run: |
+          env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+          go build -ldflags "-s -w" -o ../out/rmmagent-linux-amd64
 
       - name: Build Mac amd64
         working-directory: rmmagent
-        run: env GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" -o ../out/rmmagent-mac-amd64
+        run: |
+          env GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 \
+          go build -ldflags "-s -w" -o ../out/rmmagent-mac-amd64
 
       - name: Build Mac arm64
         working-directory: rmmagent
-        run: env GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w" -o ../out/rmmagent-mac-arm64
+        run: |
+          env GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 \
+          go build -ldflags "-s -w" -o ../out/rmmagent-mac-arm64
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rmmagent-executables
           path: out/*
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: out/*
           tag_name: ${{ github.ref_name }}
